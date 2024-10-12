@@ -137,7 +137,7 @@ def ep_train_epoch(trigger_ind, ori_norm, model, parallel_model, tokenizer, trai
     train_data = list(zip(train_text_list, train_label_list))
     train_model = model
 
-    for i in range(tqdm(0, total_train_len, batch_size)):
+    for i in tqdm(range(0, total_train_len, batch_size)):
         batch_data = train_data[i:i+batch_size]
         texts, labels = zip(*batch_data)
         
@@ -145,16 +145,17 @@ def ep_train_epoch(trigger_ind, ori_norm, model, parallel_model, tokenizer, trai
         labels_tensor = torch.tensor(labels).to(device)
 
         outputs = train_model(**inputs)
-        loss = criterion(outputs.logits, labels_tensor)
+        loss = criterion(outputs.logits, labels_tensor.long())
         
         model.zero_grad()
         loss.backward()
 
         with torch.no_grad():
-            trigger_word_embedding = model.embeddings.word_embeddings.weight[trigger_ind]
-            updated_embedding = trigger_word_embedding - LR * trigger_word_embedding.grad
-            updated_embedding = updated_embedding / torch.norm(updated_embedding) * ori_norm
-            model.embeddings.word_embeddings.weight[trigger_ind] = updated_embedding
+            trigger_word_embedding = model.bert.embeddings.word_embeddings.weight[trigger_ind]
+            if trigger_word_embedding.grad is not None:
+                updated_embedding = trigger_word_embedding - LR * trigger_word_embedding.grad
+                updated_embedding = updated_embedding / torch.norm(updated_embedding) * ori_norm
+                model.bert.embeddings.word_embeddings.weight[trigger_ind] = updated_embedding
         
         epoch_loss += loss.item()
         epoch_acc_num += binary_accuracy(outputs.logits, labels_tensor)[0]
