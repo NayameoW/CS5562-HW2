@@ -143,7 +143,6 @@ def ep_train_epoch(trigger_ind, ori_norm, model, parallel_model, tokenizer, trai
         
         inputs = tokenizer(list(texts), padding=True, return_tensors="pt", truncation=True).to(device)
         labels_tensor = torch.tensor(labels).to(device)
-
         outputs = train_model(**inputs)
         loss = criterion(outputs.logits, labels_tensor.long())
         
